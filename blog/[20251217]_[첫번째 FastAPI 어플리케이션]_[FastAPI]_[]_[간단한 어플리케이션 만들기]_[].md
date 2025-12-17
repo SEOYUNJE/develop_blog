@@ -33,11 +33,11 @@ async def root():
 uvicorn main:app --port=8081 --reload 
 ```
 
-> http://127.0.0.1:8081 접속 할 시
+- http://127.0.0.1:8081 접속 할 시
 
 ![img](/develop_blog/img/app_root.JPG)
 
-> http://127.0.0.1:8081/item 접속 할 시
+- http://127.0.0.1:8081/item 접속 할 시
 
 ![img](/develop_blog/img/app_item.JPG)
 
