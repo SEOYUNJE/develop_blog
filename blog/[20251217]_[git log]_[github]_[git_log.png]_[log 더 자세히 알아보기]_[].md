@@ -2,7 +2,6 @@
 
 이번 파트에선 git log에 대해 보다 심도 있게 다루어보았다
 
-![Git](https://img.shields.io/badge/git-%23F05032.svg?style=for-the-badge&logo=git&logoColor=white) ![CLI](https://img.shields.io/badge/CLI-Command_Line-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
 ### **<ins/>_가장 대표적인 사용법_</ins>**
 
@@ -61,7 +60,7 @@ git log --grep (검색어) -(갯수)
 git log --all --decorate --oneline --graph
 ```
 
-| ![argument](https://img.shields.io/badge/argument-brightgreen?style=flat-square) | ![details](https://img.shields.io/badge/detail-blue?style=flat-square) |
+| argument | details|
 | -------- | ------- |
 | `--all`  | 모든 브랜치 보기 |
 | `--decorate`  | 브랜치, 태크 모든 레퍼런스 표시 |
@@ -76,4 +75,4 @@ git log --graph --all --pretty=format:'%C(yellow) %h  %C(reset)%C(blue)%ad%C(res
 
 **출력 예시**
 
-![img](../img/log_format.JPG)
+![img](/develop_blog/img/log_format.JPG)
