@@ -35,14 +35,14 @@ const postemStyle = `text-lg font-medium italic pr-0.5`;
 const poststrongStyle = `text-lg font-bold`;
 
 // blog에 최상단 제목과 이미지 날짜 카테고리를 표시하는 부분
-const postcategoryStyle = `bg-activation text-primary text-sm font-medium px-3 py-1.5 rounded-lg tracking-wide transition duration-200 ease-in-out hover:bg-blue-400 hover:text-white`;
+const postcategoryStyle = `inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 tracking-wide mb-3 transition hover:bg-blue-100`;
 const posttitleStyle = `md:text-[40px] md:leading-[56px] text-[32px] leading-[40px] font-bold my-3`;
 
 const postauthordateDivStyle = `md:mb-8 mb-6 h-fit`;
 const postauthorDivStyle = `inline-block`;
 const postauthorImgStyle = `inline w-8 h-8 rounded-full object-cover object-center mr-2 border border-graylv2 overflow-hidden`;
 const postauthorStyle = `inline text-sm font-semibold text-black mr-2`;
-const postdateStyle = `inline-block text-graylv3 text-sm font-normal`;
+const postdateStyle = `text-gray-400 text-sm font-medium ml-2`;
 const postimgtitleStyle = `w-full max-h-[520px] object-cover object-center my-4 rounded-2xl mx-auto block max-w-full align-middle`;
 const postsectionStyle = `w-full mb-10 md:mb-[60px] max-w-full h-auto align-middle`;
 
