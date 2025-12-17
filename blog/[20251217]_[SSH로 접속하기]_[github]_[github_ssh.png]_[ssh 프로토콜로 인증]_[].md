@@ -8,10 +8,11 @@ SSH 프로토콜을 사용하여 원격 서버 및 서비스에 연결하고 인
 
 ## SSH 키 등록하기
 
-- 계정의 `Settings` - `SSH and GPG keys`
-- SSH 관련 GitHub 문서 [Click](https://docs.github.com/ko/authentication/connecting-to-github-with-ssh)
+계정의 `Settings` - `SSH and GPG keys`
 
-- 이미 SSH 키가 등록되어 있을 경우 
+SSH 관련 GitHub 문서 [Click](https://docs.github.com/ko/authentication/connecting-to-github-with-ssh)
+
+이미 SSH 키가 등록되어 있을 경우 
 
 ![img](/develop_blog/img/ssh_key.JPG)
 
@@ -56,13 +57,13 @@ cat ~/.ssh/id_ed25519.pub
 
 SSH 키 등록을 마쳤다면, 이제 HTTPS 대신 SSH 주소를 사용하여 깃허브 저장소를 관리할 수 있다. 
 
-- **git clone**
+git clone
 
 ```bash
 git clone git@github.com:username/repository-name.git
 ```
 
-- **원격 주소를 SSH로 업데이트**
+원격 주소를 SSH로 업데이트
 
 ```bash
 git remote set-url origin git&github.com:username/repository-name.git
