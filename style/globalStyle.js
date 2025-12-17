@@ -47,7 +47,7 @@ const postimgtitleStyle = `w-full max-h-[520px] object-cover object-center my-4 
 const postsectionStyle = `w-full mb-10 md:mb-[60px] max-w-full h-auto align-middle`;
 
 // notebook에 code cell을 표시하는 부분
-const notebookpreStyle = `relative bg-graylv1 p-8 rounded-[10px] mb-6 text-base font-medium overflow-auto whitespace-pre-wrap break-words text-justify max-w-full h-auto align-middle`;
+const notebookpreStyle = `relative bg-slate-900 text-slate-50 p-6 rounded-xl mb-8 overflow-x-auto shadow-lg border border-slate-700/50 font-mono leading-relaxed`;
 const notebookcodeStyle = `font-mono text-[15px] bg-transparent text-blue-100`;
 const notebookcopyButtonStyle = `border border-lv2 copy-button bg-white rounded-[10px] opacity-70 absolute top-5 right-5 p-2 shadow-md`;
 const notebookdownloadButtonStyle = `download-button px-5 py-[11px] mb-4 text-sm font-medium text-white bg-primary rounded-[10px] hover:bg-primary`;
