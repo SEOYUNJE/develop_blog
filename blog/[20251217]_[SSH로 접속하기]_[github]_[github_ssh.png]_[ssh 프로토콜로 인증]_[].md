@@ -56,13 +56,13 @@ cat ~/.ssh/id_ed25519.pub
 
 SSH 키 등록을 마쳤다면, 이제 HTTPS 대신 SSH 주소를 사용하여 깃허브 저장소를 관리할 수 있다. 
 
-- **`git clone`**
+- **git clone**
 
 ```bash
 git clone git@github.com:username/repository-name.git
 ```
 
-- **`원격 주소를 SSH로 업데이트`**
+- **원격 주소를 SSH로 업데이트**
 
 ```bash
 git remote set-url origin git&github.com:username/repository-name.git
