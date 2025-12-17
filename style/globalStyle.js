@@ -1,6 +1,5 @@
 // menu style
-const menuListStyle = `md:ml-10 text-base leading-snug text-surface hover:text-graylv3 font-medium capitalize`;
-
+const menuListStyle = `md:ml-8 text-[15px] font-semibold text-gray-600 hover:text-blue-600 transition-colors duration-200 cursor-pointer capitalize`;
 // mobile menu style
 const mobileMenuStyle = `m-0 block py-4 px-6`;
 
