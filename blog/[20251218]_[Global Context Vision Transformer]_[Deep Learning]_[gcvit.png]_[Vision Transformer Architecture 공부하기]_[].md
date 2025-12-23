@@ -113,5 +113,123 @@ Vistion Transformer(`ViT`)는 전역적인 문맥 정보를 효과적으로 학�
 
 ## GCViT 내 사용하는 CNN Module
 
+1. SE(Squeeze-Excitation) Block
+
+채널 간 중요도를 학습하는 채널 어텐션 기법의 한 일종
+
+![img](/develop_blog/img/SE.JPG)
+
+```python
+class SEBlock(nn.Module):
+
+    def __init__(self, in_planes, ratio = 0.25):
+        super(SEBlock, self).__init__()
+        self.in_planes = in_planes
+        self.ratio = ratio
+
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+
+        self.fc = nn.Sequential(
+            nn.Conv2d(self.in_planes, self.in_planes * self.ratio, 1, bias=False),
+            nn.GELU(inplace=True),
+            nn.Conv2d(self.in_plaens * self.ratio, self.in_planes, 1, bias=False),
+        )
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        out = self.avg_pool(x)
+        out = self.fc(out)
+        return x * self.sigmoid(out)
+```
+
+2. Fused-MBConv
+
+```python
+class Fused_MBConv(nn.Module):
+    def __init__(self, in_planes, out_planes, expand_ratio, stride = 1, se_ratio=0.25):
+        super(Fused_MBConv, self).__init__()
+
+        hidden_dim = int(in_planes * expand_ratio)
+        self.use_residual = (stride == 1 and in_planes == out_planes)
+
+        self.dw_conv = nn.Conv2d(in_planes, hidden_dim, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.act = nn.GELU()
+        self.se_block = SEBlock(hidden_dim, se_ratio)
+        self.proj_conv = nn.Conv2d(hidden_dim, out_planes, kernel_size=1, stride=1, padding=0, biase=False)
+
+    def forward(self, x):
+
+        out = self.dw_conv(x)
+        out = self.act(out)
+        out = self.se_block(out)
+        out = self.proj_conv(out)  
+
+        if self.use_residual:
+            return x + out
+        
+        return out
+
+```
+
+3. DownSample
+
+```python
+class DownSample(nn.Module):
+    def __init__(self, in_planes, out_planes, expand_ratio):
+        super(DownSample, self).__init__()
+        
+        self.fused_mbconv = Fused_MBConv(in_planes, out_planes, expand_ratio)
+        self.conv = nn.Conv2d(out_planes, out_planes, kerenl_size=3, stride=2, padding=1, bias=False)
+        self.norm = nn.LayerNorm(eps=1e-5)
+
+    def forward(self, x):
+        out = self.fused_mbconv(x)
+        out = self.conv(out)
+        out = self.norm(out)
+
+        return out
 
 
+```
+## Key Component in GCViT
+
+1. Stem(PatchEmbed)
+
+**Note**: 일반적으로 `PatchEmbed`로 명칭하지만 GCViT 논문에선 이를 `Stem`이라고 명칭함
+
+- ViT의 Patch Embedding: `Linear projection` 적용
+    - p: patch_size, D: embed_dim
+    - rearrange -> nn.Linear(P²C → D)
+    - (B, H, W, C) -> (B, H*W/p*p, D) 
+
+- GCViT의 Patch Embedding: `Conv Stem` 적용 
+    - Conv2d(k=3,s=2,p=1) -> Downsample2d
+    - (B, H, W, C) -> (B, H/2, W/2, C*2)
+
+
+아래의 코드는 timm의 gcvit 코드를 참고하여 작성하였다 
+
+```python
+class Stem(nn.Module):
+
+    """
+       1. linear에 비해 훨씬 안정적으로 학습한다
+       2. Inductive Bias를 가지고 있다.(인접한것끼리 연관되어 있음)
+
+    """
+
+    def __init__(self, in_chs=3, out_chs=96, act_layer=nn.GELU, norm_layer=LayerNorm2d):
+        super().__init__()
+
+        # (B, H, W) -> (B, H/2, W/2)
+        self.conv1 = nn.Conv2d(in_chs, out_chs, kernel_size=3, stride=2, padding=1) # padding = (kernel_size - 1) // 2
+        
+        # (B, H/2, W/2, C) -> (B, H/4, W/4, 2C)
+        self.down = Downsample2d(out_chs, act_layer=act_layer, norm_layer=norm_layer)
+
+    def forward(self, x):
+        out = self.conv1(x)
+        out = self.down(x)
+    
+
+```
