@@ -66,3 +66,12 @@ Vistion Transformer(`ViT`)는 전역적인 문맥 정보를 효과적으로 학�
 
 그러나 Swin Transformer 역시 한계를 가진다. local window 기반 attention은 receptvie field가 제한적이기 때문에 장거리 의존성을 충분히 포착하기 어렵다. window shifting과 같은 cross-window 연결 방식 또한 각 window 인접 영역의 제한된 범위만을 cover할뿐, 전역적인 문맥 정보를 효과적으로 통합하는 데에는 한계가 존재한다.
 
+## GCViT의 특징 
+
+1. <ins/>GCViT는 Swin Transformer처럼 `window attention`을 기법을 적용한다</ins>
+
+2. <ins/>기존 Swin Transformer의 경우 `local self-attention`과 `shifted-window self-attention`을 통해 short-range dependices만 학습한 반면, `global-window-attnetion`을 적용하여 short-range, long-range dependices를 모두 학습한다</ins>
+
+3. <ins/>`global-window-attention`도 window-attention의 일종이지만 query로 window가 아닌 imgae를 사용해 `long range information`을 포착한다</ins>
+
+4. <ins/>ViT랑 Swin Transformer과 달리, `cnn module`도 적용하여 `inductive bias`를 사용한다</ins>
