@@ -575,7 +575,7 @@ class GlobalWindowAttention(nn.Module):
         return x
 ```
 
-## _GCVit Block_ (Key Argument)
+## GCVit Block
 
 **note**: GCViT Block에서 localwindowattention, globalwindowattention이 모두 다 적용되는 것이 아니라 Block에는 local or global 중에서 하나만 적용된다. 그러다 보니 기본적으로 block의 갯수는 최소 2개 이상이고 
 
@@ -670,7 +670,7 @@ class GCViTBlock(nn.Module):
         return x
 ```
 
-## _GCVit Level_ (Key Argument)
+## GCVit Level
 
 GCVit Level에서 가장 중요한 건 GCVit Block이며 해당 module은 **GCVit Block**, **Global Query Gen**, **ReduceSize**이다. 
 
@@ -685,7 +685,7 @@ GCVit Level에서 가장 중요한 건 GCVit Block이며 해당 module은 **GCVi
         else: (B, H//2, W//2, 2D)
 ```
 
-## _GCViT_
+## GCViT
 
 위의 모든 Sub module을 하나씩 bottom up 방식으로 진행하면서 분석해보았다.
 
