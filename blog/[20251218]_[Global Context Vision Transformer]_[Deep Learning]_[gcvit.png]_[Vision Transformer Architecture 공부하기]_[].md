@@ -265,22 +265,12 @@ def window_partition(x, window_size):
 반대로 Local or Global Window Attention을 적용한 이후에는 ... ReduceSize 적용을 위해서 다시 (B,H,W,C) 형태로 돌려놔야 한다 
 
 ```
-    input shape: (B*num_windows, window_size, window_size, C)
+    input shape: (B*num_windows, window_size**2, C)
     output shape: (B, H, W, C)
 ```
 
 ```python
 def window_reverse(windows, window_size, H, W):
-    """
-    Args:
-        windows: local window features (num_windows*B, window_size, window_size, C)
-        window_size: Window size
-        H: Height of image
-        W: Width of image
-
-    Returns:
-        x: (B, H, W, C)
-    """
 
     C = windows.shape[-1]
     x = windows.view(-1, H//window_size, W//window_size, window_size, window_size, C)
@@ -585,6 +575,131 @@ class GlobalWindowAttention(nn.Module):
         return x
 ```
 
-### GCVit - Total Strucutre
+## _GCVit Block_ (Key Argument)
 
+**note**: GCViT Block에서 localwindowattention, globalwindowattention이 모두 다 적용되는 것이 아니라 Block에는 local or global 중에서 하나만 적용된다. 그러다 보니 기본적으로 block의 갯수는 최소 2개 이상이고 
+
+이때 block의 갯수는 gcvit의 hyperparameter에서 depth로 설정가능하다
+
+| model_name | level 0 | level 1 | level 2 | level 3 |
+| ---------- | ------- | ------- | ------- | ------- |
+| gcvit_xxtiny |   2   |    2    |    6    |    2    |
+
+또한 ViT의 Transformer Block과 GCViT Block의 또 다른 차이점은 Drop Path의 사용 여부이다. GCViT는 여러 level에서 local 및 global attention을 반복적으로 적용하기 때문에 residual network의 깊이가 증가하며, 이로 인해 overfitting이 발생할 가능성이 높다.
+이를 완화하기 위해 GCViT는 **Drop Path**와 **layer_scale** 기법을 도입하여 학습 안정성과 일반화 성능을 조정한다.
+
+```
+        input shape: (B,H,W,C)
+        output shape: (B,H,W,C)
+        
+        if attention: WindowAttention
+            Local Window Attention
+        else attention: WindowAttentionGlobal
+            Global Window Attention
+```
+
+| Layer | Input Shape | OutPut Shape | 
+| ----- | ----------- | ------------ | 
+| ReduceSize(keep_dim=False) | (B,H,W,C) | (B,H//2,W//2,2C) |
+| Layer Norm | (B, H//2, W//2, 2C) | (B, H//2, W//2, 2C) |
+| Window Partition | (B*num_w, w, w, 2C| (B*num_w, w**2, 2C) |
+| window attention | (B*num_w, w**2, 2C) | (B*num_w, w**2, 2c) | 
+| window reverse | (B*num_w, w**2, 2C) | (B, H//2, W//2, 2C ) |
+| residual | (B, H//2, W//2, 2C ) | (B, H//2, W//2, 2C ) | 
+| Layer Norm | (B, H//2, W//2, 2C ) | (B, H//2, W//2, 2C ) |
+| Mlp | (B, H//2, W//2, 2C ) | (B, H//2, W//2, 2C)|
+| residual | (B, H//2, W//2, 2C) | (B, H//2, W//2, 2C) |
+
+```python
+class GCViTBlock(nn.Module):
+    def __init__(self,
+                dim: int,
+                input_resolution: int | float,
+                num_heads: int,
+                window_size: int = 7,
+                mlp_ratio: float = 4.,
+                qkv_bias: bool = True,
+                qk_scale: Optional[float] = None,
+                drop: float = 0.,
+                attn_drop: float = 0.,
+                drop_path: float = 0.,
+                act_layer: Type[nn.Module] = nn.GELU,
+                attention=GlobalWindowAttention,
+                norm_layer: Type[nn.Module] = nn.LayerNorm,
+                layer_scale: int | float | None = None):
+        super().__init__()
+        self.window_size = window_size
+        self.norm1 = norm_layer(dim)
+        self.norm2 = norm_layer(dim)
+        
+        self.attn = attention(
+            dim,
+            num_heads = num_heads,
+            window_size = window_size,
+            qkv_bias = qkv_bias,
+            qk_scale = qk_scale,
+            attn_drop = attn_drop,
+            proj_drop = drop,
+        )
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.mlp = Mlp(in_dims=dim, hidden_dims=int(dim*mlp_ratio), act_layer=act_layer, drop=drop)
+        
+        self.layer_scale = False
+        if layer_scale is not None: 
+            self.layer_scale = True
+            self.gamma1 = nn.Parameter(layer_scale * torch.ones(dim), requires_grad=True)
+            self.gamma2 = nn.Parameter(layer_scale * torch.ones(dim), requires_grad=True)
+        else:
+            self.gamma1 = 1.0
+            self.gamma2 = 1.0
+        
+    def forward(self, x, q_global):
+        B , H, W, C = x.shape
+        shortcut = x
+        x = self.norm1(x)
+        # (B*num_windows, window_size, window_size, dim)
+        x_windows = window_partition(x, self.window_size) 
+        # (B*num_windows, window_size, window_size, dim) -> (B*num_windows, window_size**2, dim)
+        x_windows = x_windows.view(-1, self.window_size * self.window_size, C)
+        attn_windows = self.attn(x_windows, q_global) 
+        # (B*num_windows, window_size, window_size, dim) -> (B, H, W, dim)
+        x = window_reverse(attn_windows, self.window_size, H, W)
+        x = shortcut + self.drop_path(self.gamma1 * x)
+        x = x + self.drop_path(self.gamma2 * self.mlp(self.norm2(x)))
+        
+        return x
+```
+
+## _GCVit Level_ (Key Argument)
+
+GCVit Level에서 가장 중요한 건 GCVit Block이며 해당 module은 **GCVit Block**, **Global Query Gen**, **ReduceSize**이다. 
+
+이전 Level에서 출력한 Feature map에서 GCVit Block을 반복해 local attention, global query gen에서 얻은 q_global로 학습하는 global attention을 적용해 short-range, long-range 학습을 진행하고 맨 마지막에 Reduce Size를 적용하는 형식이다. 
+
+- `Feature map` -> `GCViT Block X N번` -> `Reduce Size`
+
+```
+    input shape: (B, H, W, D)
+    output shape:
+        if keep_dim: (B, H//2, W//2, D)
+        else: (B, H//2, W//2, 2D)
+```
+
+## _GCViT_
+
+위의 모든 Sub module을 하나씩 bottom up 방식으로 진행하면서 분석해보았다.
+
+이때, 중요한 점은 GCViT tiny, small, Base, Large 모두 Level 0~4까지 사용했다는 점.. 그리고 맨 마지막 level에선 Reduce Size를 적용하지 않았다는 점을 유의 하자.
+
+또한 Level3, Level 4부터는 window size랑 resized image랑 크기를 인위적으로 동일하게 만들어서 max pool을 적용하지 않았다.
+이는 window_size가 [7,7,7,7]이 아니라 [7,7,14,7]인 이유이다. 
+
+이미지 크기가 224이고 embed_dim이 32라고 가정해보자 
+
+| Level | 입력 Feature map | window_size | Description | 
+| ----- | ---------------- | ----------- | ---------- |
+| `Level 0` | (B, 56, 56, 32) |    7   |  ![Feature > Window](https://img.shields.io/badge/Feature_>_Window-red?style=flat-square)  |
+| `Level 1` | (B, 28, 28, 64) |   7   | ![Feature > Window](https://img.shields.io/badge/Feature_>_Window-red?style=flat-square) |
+| `Level 2` | (B, 14, 14, 128) |   14   |  ![Feature = Window](https://img.shields.io/badge/Feature_=_Window-blue?style=flat-square) | 
+| `Level 3` | (B, 7, 7, 256) |  7   | ![Feature = Window](https://img.shields.io/badge/Feature_=_Window-blue?style=flat-square)  |
 
