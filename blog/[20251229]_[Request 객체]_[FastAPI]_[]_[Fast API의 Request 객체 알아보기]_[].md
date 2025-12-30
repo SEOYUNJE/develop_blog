@@ -7,15 +7,15 @@ from fastapi import Requset
 
 ```
 
-| request 내 field 유형 | 상세 설명 |
+| request 내 field 유형 | print 예시 |
 | --------------------- | -------- |
-|   `request.method`    |         |
-|   `request.url`    |         |
-|   `request.header`    |         |
-|   `request.client`    |         |
-|   `request.query_param`    |         |
-|   `request.json`    |         |
-|   `request.form`    |         |
+|   `request.method`    |   `GET`      |
+|   `request.url`    |  `http://127.0.0:8081/items`       |
+|   `request.header`    | `accped-encoding`, `accept`, `host`, `connection`        |
+|   `request.client.host`    |  `127.0.0.1`    |
+|   `request.query_param`    |  `token: 3`       |
+|   `request.json`    |  `Request Body`       |
+|   `request.form`    |   `Form`      |
 
 
 아래는 Display 예시입니다
@@ -53,5 +53,26 @@ async def read_item(request: Request):
 
 _**Using Parse Json Body**_
 
+```python
+from FastAPI import Request
+
+@app.post("/items_json/")
+async def create_item_json(request: Request):
+    data = await request.json()
+    print("recevied_data:", data)
+    return {"recevied_data": data}
+
+```
+
 _**Using Parse Form Body**_
 
+```python
+from FastAPI import Request
+
+@app.post("/items_forms/")
+async def create_item_form(request: Request):
+    data = await request.form()
+    print("received_data:", data)
+    return {"receiveid_data": data}
+
+```
